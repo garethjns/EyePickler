@@ -1,7 +1,7 @@
 """
 Created on Fri Dec  9 12:08:15 2016
 
-Collect eye gaze data, pickle to disk. Then reload as pandas dataframe and save
+Collect eye on surface data, pickle to disk. Then reload as pandas dataframe and save
 as .mat.
 
 @author: gareth
@@ -42,7 +42,7 @@ def connect(ip='127.0.0.1', port='35453', subs=['gaze', 'pupil.0']):
     print 'Connected'
     
     # Subscribe to messages
-    if type(subs) (not isinstance(subs, list)):
+    if not isinstance(subs, list):
         subs=[subs]
     for msgs in subs:
         sub.setsockopt(zmq.SUBSCRIBE, msgs)
@@ -103,7 +103,7 @@ def unpickle(fn):
     return(objs)
     
 
-def gazeToPandasDF(objs, fnOut='processed.mat'):
+def surfaceToPandasDF(objs, surfs = ['Target'], fnOut='processed.mat'):
     # Convert objs containg gaze information to pandas dataframe and 
     # save a .mat version to disk
     # (Might be better to skip conversion to df as scio.savemat saves dicts)
@@ -123,22 +123,24 @@ def gazeToPandasDF(objs, fnOut='processed.mat'):
         # Process message
         msg = loads(data['msg'])
         
+        # Find requested surfaces in msg
+        # (Just 1 for now)
+        filtSurf = msg
+        # Get gaze data - may be more than one entry
+        gaze = filtSurf['gaze_on_srf']
+        for subGaze in gaze:
+            print subGaze['topic'], subGaze['on_srf']
+
+        # Average??
+        onSurf = True
+        
         # Report progress
         print str(ts) + ' (' + str(it/n*100) + '%)'
         
-        # Note:
-        # Base data is dict
-        # baseData = msg['base_data']
-        # Containg pupil [0] and [1]
-        # baseData[0].keys()
-        # baseData[1].keys()
-        
-        # msg['norm_pos']
-        
+       
         # Get save norm_pos data and TS
         dRow = pd.DataFrame({'TS': ts, 
-                      'NP0' : msg['norm_pos'][0], 
-                      'NP1' : msg['norm_pos'][1]},
+                      'onSurf' : onSurf},
                        index = [int(it)])
         # Append to df
         df = df.append(dRow)
@@ -153,13 +155,13 @@ def gazeToPandasDF(objs, fnOut='processed.mat'):
     
     
 ## Params
-fn = "ClockTest.p"
+fn = "SurfaceTest.p"
 port = 35453
 
 ## Run
-sub = connect(port=port, subs='gaze')
+sub = connect(port=port, subs='surface')
 runExp(fn, sub)
 
 ## End    
 objs = unpickle(fn)
-df = gazeToPandasDF(objs, 'ClockTest.mat')
+df = surfaceToPandasDF(objs, 'SurfaceTest.mat')

@@ -13,6 +13,8 @@ import time
 import pandas as pd
 import pickle
 import scipy.io as scio
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def connect(ip='127.0.0.1', port='35453', subs=['gaze', 'pupil.0']):
@@ -128,11 +130,13 @@ def surfaceToPandasDF(objs, surfs = ['Target'], fnOut='processed.mat'):
         filtSurf = msg
         # Get gaze data - may be more than one entry
         gaze = filtSurf['gaze_on_srf']
+        on = []
         for subGaze in gaze:
-            print subGaze['topic'], subGaze['on_srf']
+            on.append(subGaze['on_srf'])
+            # print subGaze['topic'], subGaze['on_srf']
 
-        # Average??
-        onSurf = True
+        # Average?
+        onSurf = np.mean(on)
         
         # Report progress
         print str(ts) + ' (' + str(it/n*100) + '%)'
@@ -165,3 +169,6 @@ runExp(fn, sub)
 ## End    
 objs = unpickle(fn)
 df = surfaceToPandasDF(objs, 'SurfaceTest.mat')
+
+## On surface plot
+plt.plot(df['onSurf'])

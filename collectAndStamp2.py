@@ -139,8 +139,15 @@ def surfaceToPandasDF(objs, surfs = ['Target'], fnOut='processed.mat'):
             gd['on'].append(subGaze['on_srf'])
             # print subGaze['topic'], subGaze['on_srf']
 
-        # Average?
+        # Average available data
+        # 'on_srf'
+        # Here no data returns NaN
         onSurf = np.mean(gd['on'])
+        
+        # 'norm_pos'
+        # Works for now, but needs updating
+        # Need to handle mean on [x,y]
+        # Need to handle mean on []
         try:
             NP = np.mean(gd['NP'], axis=0)
             if isinstance(NP, np.float64):
@@ -182,9 +189,11 @@ runExp(fn, sub)
 objs = unpickle(fn)
 df = surfaceToPandasDF(objs, fn+'.mat')
 
-## On surface plot
+## Plots
+# Logical on surface plot
 plt.plot(df['onSurf'])
 plt.show()
 
+# Scatter norm_pos data, color read when on target surface
 plt.scatter(df['NP0'][df['onSurf']==1], df['NP1'][df['onSurf']==1], c='r')
 plt.scatter(df['NP0'][df['onSurf']==0], df['NP1'][df['onSurf']==0], c='b')

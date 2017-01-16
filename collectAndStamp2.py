@@ -178,8 +178,8 @@ def surfaceToPandasDF(objs, surfs = ['Target'], fnOut='processed.mat'):
     
     
 ## Params
-fn = "SurfaceTest2.p"
-port = 35453
+fn = "SurfaceTest3.p"
+port = 43191
 
 ## Run
 sub = connect(port=port, subs='surface')

@@ -195,5 +195,7 @@ plt.plot(df['onSurf'])
 plt.show()
 
 # Scatter norm_pos data, color read when on target surface
+plt.figure(figsize=(10,10))
 plt.scatter(df['NP0'][df['onSurf']==1], df['NP1'][df['onSurf']==1], c='r')
 plt.scatter(df['NP0'][df['onSurf']==0], df['NP1'][df['onSurf']==0], c='b')
+	

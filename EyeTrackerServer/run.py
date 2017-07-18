@@ -23,7 +23,7 @@ import os
 os.chdir(eyeDir)
 sys.path.append(eyeDir)
 
-import eyeTracker as et
+import EyeTracker as et
   
 
 #%% Run 

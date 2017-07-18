@@ -21,7 +21,7 @@ import scipy.io as scio
 #%% Prepare
 
      
-class eyeTracker():
+class EyeTracker():
     """
     Create connections to TCP and eye tracker. 
     Run through each stage automatically with flags.

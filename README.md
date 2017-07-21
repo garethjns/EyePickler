@@ -5,15 +5,34 @@ Initial time synchronisation, eye tracker data collection and conversions betwee
 ## Requirements
 - [Pupil labs](https://github.com/pupil-labs/pupil) eyetracker and software.
 - Python 2.7
+	- msgpack
+	- zmq
+	- scipy
+	- pickle
+	- time
+	- Numpy
+	- Pandas
+	- tqdm (optional)
 - MATLAB (code included), or another TCP client.
+
+Python dependencies are satisfied in default Anaconda 4 distribution, eg.:
+
+~~~~
+conda create -n EyeEnv python=2.7 anaconda
+~~~~
 
 # Classes
 
 ## EyeTrackerServer
 - Creates TCP server for time exchange.
-- Connects to PupilLabs ZMQ server to receive live eye tracker data (currently supports surface subscription).
+- Connects to PupilLabs ZMQ server to receive live eye tracker data 
 - Pickles eye data to disk.
 - Converts .p to .mat.
+
+- Subscriptions supported:
+	- gaze
+	- surface
+	- pupil.0, pupil.1
 
 ## MATLAB client
 - Connects to TCP server, exchanges current time.
@@ -33,4 +52,5 @@ To convert already collected data to .mat format (for example, if not set to aut
 # To do
 - Add other subscriptions. This can be done in EyeTracker class, conversion methods will also need updating.
 - Add live functionality. This requires adding persistent TCP client to EyeTracker that can be monitored by the client. For example, client to check gaze is on surface before starting a trial.
+- Add support for cPickle
 

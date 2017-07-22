@@ -272,6 +272,7 @@ class EyeTracker():
         # structure    
         # Fieldnames are limited to 31 chars
         x = [len(c) for c in df.columns]
+        longNames = df.columns
         if np.any(x>31):
             # Use shortened coding scheme
             nn = []
@@ -307,7 +308,9 @@ class EyeTracker():
         # Create save dict
         dv = {col : df[col].values for col in df.columns.values}   
         
-        # Also add time data to dv
+        # Also add time and name data to dv
+        dv['shortNames'] = nn
+        dv['longNames'] = longNames
         dv['timeSwapRec'] = self.timeSwapRec
         dv['timeSwapSend'] = self.timeSwapSend
         dv['creationTime'] = self.creationTime

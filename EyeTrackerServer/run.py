@@ -15,14 +15,16 @@ Collect data. Saved in to eyeDir.
 
 #%% Imports
 
-eyeDir = "/home/gareth/Code/SpatialTaskV2/EyeTracker"
-
 import sys
 import os
 
+# Set to '...EyePickler/EyeTrackerServer/' or navigate and restart console 
+# there (then use os.getcwd())
+eyeDir = os.getcwd()
+
+# Get EyeTracker class
 os.chdir(eyeDir)
 sys.path.append(eyeDir)
-
 import EyeTracker as et
   
 
@@ -37,7 +39,7 @@ TCPAddr = '128.40.249.99' # Time server address (this computer)
 TCPPort = 52012 # Time server port
 
 # Connect, wait, run, process
-eye = et.eyeTracker(fn=dPath+fn, port=port, subs=['surface', 'gaze'],
+eye = et.EyeTracker(fn=dPath+fn, port=port, subs=['surface', 'gaze'],
                  TCPAddr=TCPAddr, TCPPort=TCPPort,
                  connectNow=True, startNow=True, processNow=True)
 

@@ -10,25 +10,39 @@ Process collected eye data
 
 #%% Imports
 
-eyeDir = "/home/gareth/Code/SpatialTaskV2/EyeTracker"
-
 import sys
 import os
 
+# Set to '...EyePickler/EyeTrackerServer/' or navigate and restart console 
+# there (then use os.getcwd())
+eyeDir = os.getcwd()
+
+# Get EyeTracker class
 os.chdir(eyeDir)
 sys.path.append(eyeDir)
-
 import EyeTracker as et
   
 
-#%% Run 
-# clear
+#%% Example: Run for surface subscription
+# Just process out surface information
+# MATLAB import script included in /EyeTracker/MATLABAnalysis/
   
 ## Params
-fn = "11XY"
+fn = "15SI"
 dPath = "Data/"
 
+eye = et.EyeTracker(fn = dPath+fn)
+eye.processSurface()
 
-eye = et.eyeTracker(fn = dPath+fn)
-eye.process()
 
+#%% Example: Run for all subscriptions
+# Extract all availale information
+# Convert from "tree" JSON to "linear" table columns
+# Will require custom MATLAB import script
+
+## Params
+fn = "15SI"
+dPath = "Data/"
+
+eye = et.EyeTracker(fn = dPath+fn)
+eye.processAll()

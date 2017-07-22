@@ -16,6 +16,11 @@ import pickle
 import pandas as pd
 from msgpack import loads 
 import scipy.io as scio
+# tqdm is optional
+try:
+    from tqdm import tqdm
+except:
+    tqdm = lambda x: x
 
         
 #%% Prepare
@@ -62,7 +67,7 @@ class EyeTracker():
         
         # And attemppt to connect
         if self.connectNow:
-            eyeTracker.connect(self)
+            EyeTracker.connect(self)
     
 
     def connect(self):
@@ -100,7 +105,7 @@ class EyeTracker():
         self.sub = sub
         
         # Now create TCP server and wait for MATLAB
-        eyeTracker.connectTCP(self, addr=self.TCPAddr, port=self.TCPPort)
+        EyeTracker.connectTCP(self, addr=self.TCPAddr, port=self.TCPPort)
         
         return(sub)
         
@@ -153,7 +158,7 @@ class EyeTracker():
             
             
         if self.startNow and TCPOK:
-                eyeTracker.runExp(self)   
+                EyeTracker.runExp(self)   
         
                 
     def runExp(self):
@@ -190,13 +195,18 @@ class EyeTracker():
             f.close()      
     
         if self.processNow:
-            eyeTracker.process(self)
+            EyeTracker.process(self)
             
             
-    def process(self):
+    def processSurface(self):
         print('Processing')
-        eyeTracker.unpickle(self)
-        eyeTracker.surfaceGazeToPandasDF(self)
+        EyeTracker.unpickle(self)
+        EyeTracker.surfaceGazeToPandasDF(self)
+        
+    def processAll(self, debug=False, verb=False):
+        print('Processing')
+        EyeTracker.unpickle(self)
+        EyeTracker.allToDF(self, debug=debug, verb=verb)   
         
         
     def unpickle(self):
@@ -226,7 +236,55 @@ class EyeTracker():
         
         self.objs = objs    
         return(objs)
-                
+    
+    
+    def allToDF(self, objs=[], fnOut='', debug=False, verb=False):
+        # Convert requested subs to DF to .mat
+        # Extracts all data to linear table
+
+        if len(fnOut)==0:
+            fnOut=self.fnOut
+            
+        if len(objs)==0:
+            objs = self.objs
+       
+        # Get n and track its for reporting
+        n = len(objs)
+        it = 0.0
+        # Prepare df (df.append perf ok?)
+        df = pd.DataFrame()
+            
+        # For each message, process JSON, append as row to df
+        for data in tqdm(objs):
+            it+=1
+            
+            # Extract time stamp
+            ts = data['TS']
+            # Process message
+            msg = loads(data['msg'])
+            
+            p = EyeTracker.msg2pd(msg, debug=debug, verb=verb)
+            
+            df = pd.concat((df,p), axis=0)
+           
+        # Save as .mat
+        # Can't save pandas df directly, so convert to dict to be saved as 
+        # structure    
+        dv = {col : df[col].values for col in df.columns.values}   
+        
+        # Also add time data to dv
+        dv['timeSwapRec'] = self.timeSwapRec
+        dv['timeSwapSend'] = self.timeSwapSend
+        dv['creationTime'] = self.creationTime
+        dv['fn'] = self.fn 
+        dv['subs'] = self.subs
+         
+        scio.savemat(fnOut, {'struct': dv})
+        
+        print('    Saved: ' + fnOut)
+        self.df = df
+        return(df)
+    
     
     def surfaceToPandasDF(self, objs=[], surfs = ['Target'], fnOut=''):
         # Convert objs containg gaze information to pandas dataframe and 
@@ -246,7 +304,7 @@ class EyeTracker():
         df = pd.DataFrame()
         
         # For each message, process JSON, append as row to df
-        for data in objs:
+        for data in tqdm(objs):
             it+=1
             
             # Extract time stamp
@@ -282,6 +340,8 @@ class EyeTracker():
                 NP = [0,0]
             
             # Report progress
+            # TODO:
+                # Only use when tqdm not available
             print str(ts) + ' (' + str(it/n*100) + '%)'
             
             # Get save norm_pos data and TS
@@ -330,7 +390,7 @@ class EyeTracker():
         df = pd.DataFrame()
         
         # For each message, process JSON, append as row to df
-        for data in objs:
+        for data in tqdm(objs):
             it+=1
             
             # Extract time stamp
@@ -379,6 +439,8 @@ class EyeTracker():
                 onSurf = np.nan
 
             # Report progress
+            # TODO:
+                # Only use when tqdm not available
             print str(ts) + ' (' + str(it/n*100) + '%)'
             
             # Get save norm_pos data and TS
@@ -410,3 +472,91 @@ class EyeTracker():
         
         return(df)
         
+    @staticmethod
+    def msg2pd(d, appStr='', call=1, debug=False, verb=False):
+        # Recursively convert embedded dicts to pd columns
+        # If dict call self
+        # If list
+        #   If list of dicts - call self on each
+        #   if list of lists - call self on each  
+        #   If list of floats - use
+        # If float - use
+        # Append additional level to colname on each recursive call
+        # Can probably be simlified:
+        # Handles:
+        # single
+        # dict -> single
+        # list -> single
+        # dict -> list -> single
+        # list -> dict -> single
+        # dict or list -> dict or list -> .... -> single
+        
+        p = pd.DataFrame()
+        
+        if debug:
+            # Add call number to column name
+            appStr = appStr+'_c'+str(call)
+            
+        if verb:
+            # Print cols added
+            print(appStr)
+            
+        if type(d) == list:
+            # List call might contain dicts/lists, or single values
+            # Assuming contents are all of same type
+            if type(d[0])==dict or type(d[0])==list:
+                for v in range(0,len(d)):
+                    # If dict/lists - recursive
+                    p2 = EyeTracker.msg2pd(d[v], appStr= appStr+'_'+str(v), 
+                                           call=call+1,
+                                           debug=debug, verb=verb)
+                    p = pd.concat((p,p2), axis=1)
+            else:
+                # Not a iterable, multiple single values
+                for i in range(0, len(d)):
+                    # Put in individual, named cols
+                    # print(i)
+                    # print(v)
+                    p.loc[0,appStr+'_'+str(i)] = d[i]
+        else:
+            # If input isn't a list, it's a dict - or error!
+            # Run for single dict
+            for k, v in d.iteritems():
+                # print(k)
+                # print(v)
+                if type(v) == dict:
+                    # This is a dict, call self
+                    p2 = EyeTracker.msg2pd(v, appStr= appStr+'_'+k, 
+                                           call=call+1,
+                                           debug=debug, verb=verb)
+                    p = pd.concat((p,p2), axis=1)
+                else:
+                    
+                    if type(v) == list and len(v)>0:
+                        # This is another list non empty list 
+                        # - check if it's a list of dicts or a 
+                        # list of floats/strings
+                        if type(v[0])==dict or type(v[0])==list:
+                            # More itrtables! Call self.
+                            # This is a dict, call self
+                            p2 = EyeTracker.msg2pd(v, appStr= appStr+'_'+k, 
+                                                   call=call+1,
+                                                   debug=debug, verb=verb)
+                            p = pd.concat((p,p2), axis=1)
+                        else:
+                            # Not a dict, but multiple values
+                            for i in range(0, len(v)):
+                                # Put in individual, named cols
+                                # print(i)
+                                # print(v)
+                                p.loc[0,k+appStr+'_'+str(i)] = v[i]
+                    elif v != []:
+                        # Else for any other value EXCEPT empty list
+                        # Just a single value, put in col with same name
+                        p.loc[0,k+appStr] = v
+                    else:
+                        if debug:
+                            print('Empty or invalid value ignored:')
+                            print(v)
+    
+        return p

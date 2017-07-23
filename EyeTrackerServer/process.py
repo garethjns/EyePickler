@@ -45,6 +45,7 @@ fn = "15SI"
 dPath = "Data/"
 
 eye = et.EyeTracker(fn = dPath+fn)
-eye.processAll(verb=False)
+# Set verb=True to see fields extracted
+eye.processAll(chunkSize=1000, verb=False)
 
-df = eye.allToDF(objs=eye.objs[53006:54000], chunkSize=50, debug1=True)
+# df = eye.allToDF(objs=eye.objs[53006:54000], chunkSize=50, debug1=True)

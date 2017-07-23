@@ -203,10 +203,10 @@ class EyeTracker():
         EyeTracker.unpickle(self)
         EyeTracker.surfaceGazeToPandasDF(self)
         
-    def processAll(self, debug=False, verb=False):
+    def processAll(self, chunkSize=1000, debug=False, verb=False):
         print('Processing')
         EyeTracker.unpickle(self)
-        EyeTracker.allToDF(self, debug=debug, verb=verb)   
+        EyeTracker.allToDF(self, chunkSize=chunkSize, debug=debug, verb=verb)   
         
         
     def unpickle(self):
@@ -238,7 +238,8 @@ class EyeTracker():
         return(objs)
     
     
-    def allToDF(self, objs=[], fnOut='', debug=False, verb=False):
+    def allToDF(self, objs=[], fnOut='', chunkSize=1000, 
+                debug=False, verb=False, debug1=False):
         # Convert requested subs to DF to .mat
         # Extracts all data to linear table
 
@@ -247,35 +248,58 @@ class EyeTracker():
             
         if len(objs)==0:
             objs = self.objs
-       
         # Get n and track its for reporting
-        n = len(objs)
+        n = len(objs)    
+        
+        if n>(chunkSize*1.5):
+            # Chunk
+            nChunks = np.ceil(n/chunkSize)
+            chunkIdx = list(range(0, n, chunkSize))
+            chunkIdx[-1] = n
+        else:
+            chunkIdx = [0, n]
+            nChunks = 1.0
+            
         it = 0.0
-        # Prepare df (df.append perf ok?)
+        # Prepare df (df.append perf ok? - no, slows after ~50,000 rows)
+        # Trying chunking...
         df = pd.DataFrame()
             
         # For each message, process JSON, append as row to df
-        for data in tqdm(objs):
-            it+=1
+        for c in range(0, int(nChunks)):
+            s = chunkIdx[c]
+            e = chunkIdx[c+1]
             
-            # Extract time stamp
-            ts = data['TS']
-            # Process message
-            msg = loads(data['msg'])
+            print('Chunk ' + str(c) + '/' + str(int(nChunks))
+                +' (' + str(np.round(c/nChunks*100,2))+'%)')
+            if debug1:
+                print(s)
+                print(e)
+                
+            dfSub = pd.DataFrame()
+            for data in tqdm(objs[s:e]):
+                it+=1
+                
+                # Extract time stamp
+                ts = data['TS']
+                # Process message
+                msg = loads(data['msg'])
+                
+                p = EyeTracker.msg2pd(msg, debug=debug, verb=verb)
+                
+                dfSub = pd.concat((dfSub, p), axis=0)
             
-            p = EyeTracker.msg2pd(msg, debug=debug, verb=verb)
-            
-            df = pd.concat((df,p), axis=0)
-        
+            df = pd.concat((df, dfSub), axis=0)
         # Save as .mat
         # Can't save pandas df directly, so convert to dict to be saved as 
         # structure    
         # Fieldnames are limited to 31 chars
         x = [len(c) for c in df.columns]
-        longNames = df.columns
+        longNames = list(df.columns)
+        
+        nn = []
         if np.any(x>31):
             # Use shortened coding scheme
-            nn = []
             for s in df.columns:
                 # Shorted possible words
                 s = s.replace('gaze', 'gz')
@@ -295,7 +319,6 @@ class EyeTracker():
                 s = s.replace('center', 'cen')
                 s = s.replace('angle', 'ang')
                 s = s.replace('method', 'met')
-                
                 
                 # This one changes a surface name
                 s = s.replace('Target', 'Tar')

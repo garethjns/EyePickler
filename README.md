@@ -15,10 +15,12 @@ Initial time synchronisation, eye tracker data collection and conversions betwee
 	- tqdm (optional)
 - MATLAB (code included), or another TCP client.
 
-Python dependencies are satisfied in default Anaconda 4 distribution, eg.:
+To prepare Python environment using Anaconda 4:
 
-~~~~
+~~~~dos
 conda create -n EyeEnv python=2.7 anaconda
+activate EyeEnv
+conda install tqdm
 ~~~~
 
 # Classes

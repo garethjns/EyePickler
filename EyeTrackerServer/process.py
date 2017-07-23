@@ -47,4 +47,4 @@ dPath = "Data/"
 eye = et.EyeTracker(fn = dPath+fn)
 eye.processAll(verb=False)
 
-# eye.allToDF(objs=eye.objs[50006:5100])
+df = eye.allToDF(objs=eye.objs[53006:54000], chunkSize=50, debug1=True)
